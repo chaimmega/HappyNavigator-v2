@@ -12,14 +12,14 @@ export function Header() {
         }} />
       </div>
       <div className="relative flex items-center gap-4 px-5 py-3">
-        <motion.div
+        <motion.img
+          src={logo}
+          alt="Happy Navigator"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm shadow-lg"
-        >
-          <img src={logo} alt="Happy Navigator" className="h-8 w-8 object-contain" />
-        </motion.div>
+          className="h-10 w-10 shrink-0 rounded-xl object-contain drop-shadow-lg"
+        />
         <div className="min-w-0">
           <motion.h1
             initial={{ x: -10, opacity: 0 }}
