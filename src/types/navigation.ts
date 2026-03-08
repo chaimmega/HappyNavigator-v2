@@ -1,0 +1,103 @@
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+export interface HappinessSignals {
+  parkCount: number;
+  waterCount: number;
+  waterwayCount: number;
+  greenCount: number;
+  litCount: number;
+  calmWaterCount: number;
+  rapidCount: number;
+  launchCount: number;
+  portageCount: number;
+  motorBoatCount: number;
+  partial: boolean;
+}
+
+export interface ScoreBreakdown {
+  parks: number;
+  waterways: number;
+  water: number;
+  green: number;
+  lit: number;
+  calmWater: number;
+  launch: number;
+  portage: number;
+  base: number;
+  rapids: number;
+  elevation: number;
+  motorBoat: number;
+}
+
+export interface ScoredRoute {
+  id: number;
+  geometry: [number, number][];
+  distance: number;
+  duration: number;
+  signals: HappinessSignals;
+  happyScore: number;
+  scoreBreakdown: ScoreBreakdown;
+  elevationGainM?: number;
+  elevationPoints?: number[];
+}
+
+export interface AIExplanation {
+  bestRouteId: number;
+  bullets: string[];
+  suggestedStops?: string[];
+}
+
+export interface NavigateResponse {
+  routes: ScoredRoute[];
+  bestRouteId: number;
+  explanation: AIExplanation | null;
+  startCoords: Coordinates;
+  endCoords: Coordinates;
+  startName: string;
+  endName: string;
+}
+
+export type ScoreTier = "scenic" | "okay" | "low";
+
+export function getScoreTier(score: number): ScoreTier {
+  if (score >= 70) return "scenic";
+  if (score >= 40) return "okay";
+  return "low";
+}
+
+export function formatDistance(meters: number, metric: boolean): string {
+  if (metric) {
+    const km = meters / 1000;
+    return km < 0.1 ? "< 0.1 km" : `${km.toFixed(1)} km`;
+  }
+  const mi = meters / 1609.344;
+  return mi < 0.1 ? "< 0.1 mi" : `${mi.toFixed(1)} mi`;
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return "< 1 min";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
+}
+
+export function formatElevation(meters: number, metric: boolean): string {
+  if (metric) return `↑ ${Math.round(meters)} m`;
+  return `↑ ${Math.round(meters * 3.28084)} ft`;
+}
+
+export function estimateCalories(durationSeconds: number): number {
+  return Math.round(280 * (durationSeconds / 3600));
+}
+
+export function estimateCO2Saved(distanceMeters: number): number {
+  return Math.round((distanceMeters / 1000) * 120);
+}
+
+export const ROUTE_COLORS = ["hsl(160, 84%, 39%)", "hsl(217, 91%, 60%)", "hsl(25, 95%, 53%)"];
+export const ROUTE_NAMES = ["Route A", "Route B", "Route C"];
