@@ -1,7 +1,12 @@
 import logo from "@/assets/logo.png";
 import { motion } from "framer-motion";
 
-export function Header() {
+interface HeaderProps {
+  metric?: boolean;
+  onToggleMetric?: () => void;
+}
+
+export function Header({ metric, onToggleMetric }: HeaderProps) {
   return (
     <header className="relative overflow-hidden text-primary-foreground"
       style={{ background: "linear-gradient(135deg, hsl(280, 70%, 45%), hsl(210, 85%, 50%), hsl(160, 75%, 38%))" }}
@@ -38,7 +43,17 @@ export function Header() {
             Discover calmer, greener, more enjoyable drives
           </motion.p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
+          {onToggleMetric && (
+            <button
+              onClick={onToggleMetric}
+              className="hidden md:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white/80 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-sm transition-all"
+            >
+              <span className={metric ? "text-white font-bold" : ""}>km</span>
+              <span className="text-white/50">/</span>
+              <span className={!metric ? "text-white font-bold" : ""}>mi</span>
+            </button>
+          )}
           <div className="hidden items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm md:flex">
             <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
             Google Maps
