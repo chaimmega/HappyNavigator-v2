@@ -112,7 +112,7 @@ export function SearchForm({ onSearch, loading, defaultFrom = "", defaultTo = ""
         <button
           type="button"
           onClick={() => setShowVia(true)}
-          className="flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:text-emerald-700"
+          className="flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:opacity-75"
         >
           <Plus className="h-3.5 w-3.5" />
           Add waypoint
@@ -123,7 +123,8 @@ export function SearchForm({ onSearch, loading, defaultFrom = "", defaultTo = ""
       <Button
         type="submit"
         disabled={loading || !from.trim() || !to.trim()}
-        className="w-full rounded-xl bg-primary py-6 text-sm font-semibold shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+        className="w-full rounded-xl py-6 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+        style={{ background: "linear-gradient(135deg, hsl(210, 90%, 55%), hsl(155, 75%, 42%))" }}
       >
         {loading ? (
           <span className="flex items-center gap-2">

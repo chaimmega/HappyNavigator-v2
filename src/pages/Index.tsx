@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 function MapPlaceholder() {
   return (
-    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-50 to-secondary overflow-hidden">
+    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-accent to-secondary overflow-hidden">
       <div className="absolute inset-0 opacity-[0.04]" style={{
         backgroundImage: `
           linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),

@@ -69,7 +69,7 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm">{routeName}</span>
                 {isBest && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
                     ★ Best
                   </span>
                 )}
@@ -168,7 +168,7 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
               </div>
 
               {/* Export GPX */}
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-emerald-50 py-2 text-xs font-medium text-primary transition-colors hover:bg-emerald-100">
+              <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted">
                 <Download className="h-3.5 w-3.5" />
                 Export GPX
               </button>

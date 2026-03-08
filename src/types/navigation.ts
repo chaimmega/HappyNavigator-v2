@@ -44,10 +44,15 @@ export interface ScoredRoute {
   elevationPoints?: number[];
 }
 
+export interface SuggestedStop {
+  name: string;
+  image: string;
+}
+
 export interface AIExplanation {
   bestRouteId: number;
   bullets: string[];
-  suggestedStops?: string[];
+  suggestedStops?: SuggestedStop[];
 }
 
 export interface NavigateResponse {
@@ -95,5 +100,5 @@ export function estimateCO2Saved(distanceMeters: number): number {
   return Math.round((distanceMeters / 1000) * 120);
 }
 
-export const ROUTE_COLORS = ["hsl(160, 84%, 39%)", "hsl(217, 91%, 60%)", "hsl(25, 95%, 53%)"];
+export const ROUTE_COLORS = ["hsl(155, 75%, 42%)", "hsl(210, 90%, 55%)", "hsl(25, 95%, 55%)"];
 export const ROUTE_NAMES = ["Route A", "Route B", "Route C"];

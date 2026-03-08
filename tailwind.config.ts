@@ -57,15 +57,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        emerald: {
-          50: "hsl(var(--emerald-50))",
-          100: "hsl(var(--emerald-100))",
-          200: "hsl(var(--emerald-200))",
-          400: "hsl(var(--emerald-400))",
-          500: "hsl(var(--emerald-500))",
-          600: "hsl(var(--emerald-600))",
-          700: "hsl(var(--emerald-700))",
-          800: "hsl(var(--emerald-800))",
+        rainbow: {
+          purple: "hsl(var(--rainbow-purple))",
+          blue: "hsl(var(--rainbow-blue))",
+          cyan: "hsl(var(--rainbow-cyan))",
+          green: "hsl(var(--rainbow-green))",
+          yellow: "hsl(var(--rainbow-yellow))",
+          orange: "hsl(var(--rainbow-orange))",
+          red: "hsl(var(--rainbow-red))",
         },
         water: {
           DEFAULT: "hsl(var(--water))",
