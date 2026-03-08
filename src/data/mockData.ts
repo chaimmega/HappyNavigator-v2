@@ -1,4 +1,6 @@
 import { NavigateResponse } from "@/types/navigation";
+import stopOverlook from "@/assets/stop-riverside-overlook.jpg";
+import stopCafe from "@/assets/stop-greenway-cafe.jpg";
 
 export const mockResponse: NavigateResponse = {
   routes: [
@@ -62,8 +64,8 @@ export const mockResponse: NavigateResponse = {
       "18 low-traffic segments make for a relaxed, stress-free driving experience — perfect for unwinding after work",
     ],
     suggestedStops: [
-      "Riverside Park Overlook — scenic pullover with panoramic Hudson River views",
-      "Hudson River Greenway Café — cozy waterfront rest stop with coffee and snacks",
+      { name: "Riverside Park Overlook — scenic pullover with panoramic Hudson River views", image: stopOverlook },
+      { name: "Hudson River Greenway Café — cozy waterfront rest stop with coffee and snacks", image: stopCafe },
     ],
   },
   startCoords: { lat: 40.7829, lng: -73.9654 },
