@@ -33,7 +33,7 @@ export function Header() {
             transition={{ duration: 0.4, delay: 0.2 }}
             className="hidden text-sm text-emerald-200 md:block"
           >
-            Discover calmer, greener, more enjoyable routes
+            Discover calmer, greener, more enjoyable drives
           </motion.p>
         </div>
         <div className="ml-auto flex items-center gap-2">

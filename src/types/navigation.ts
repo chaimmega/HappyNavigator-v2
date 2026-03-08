@@ -5,31 +5,31 @@ export interface Coordinates {
 
 export interface HappinessSignals {
   parkCount: number;
-  waterCount: number;
-  waterwayCount: number;
+  waterfrontCount: number;
+  scenicRoadCount: number;
   greenCount: number;
   litCount: number;
-  calmWaterCount: number;
-  rapidCount: number;
-  launchCount: number;
-  portageCount: number;
-  motorBoatCount: number;
+  lowTrafficCount: number;
+  constructionCount: number;
+  restStopCount: number;
+  viewpointCount: number;
+  highwayCount: number;
   partial: boolean;
 }
 
 export interface ScoreBreakdown {
   parks: number;
-  waterways: number;
-  water: number;
+  scenicRoads: number;
+  waterfront: number;
   green: number;
   lit: number;
-  calmWater: number;
-  launch: number;
-  portage: number;
+  lowTraffic: number;
+  restStops: number;
+  viewpoints: number;
   base: number;
-  rapids: number;
+  construction: number;
   elevation: number;
-  motorBoat: number;
+  highway: number;
 }
 
 export interface ScoredRoute {
@@ -89,10 +89,6 @@ export function formatDuration(seconds: number): string {
 export function formatElevation(meters: number, metric: boolean): string {
   if (metric) return `↑ ${Math.round(meters)} m`;
   return `↑ ${Math.round(meters * 3.28084)} ft`;
-}
-
-export function estimateCalories(durationSeconds: number): number {
-  return Math.round(280 * (durationSeconds / 3600));
 }
 
 export function estimateCO2Saved(distanceMeters: number): number {

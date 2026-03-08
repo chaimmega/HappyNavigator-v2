@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ScoredRoute, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
 import { HappyScore } from "./HappyScore";
-import { ChevronDown, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { useState } from "react";
 
 interface RouteCardProps {
@@ -14,11 +14,12 @@ interface RouteCardProps {
 
 const signalChips = [
   { key: "parkCount", emoji: "🌳", label: "parks" },
-  { key: "waterCount", emoji: "💧", label: "water" },
-  { key: "waterwayCount", emoji: "🌊", label: "waterways" },
+  { key: "waterfrontCount", emoji: "💧", label: "waterfront" },
+  { key: "scenicRoadCount", emoji: "🛣️", label: "scenic roads" },
   { key: "greenCount", emoji: "🌿", label: "green" },
-  { key: "calmWaterCount", emoji: "🏊", label: "calm water" },
-  { key: "launchCount", emoji: "⛵", label: "launches" },
+  { key: "lowTrafficCount", emoji: "🚗", label: "low traffic" },
+  { key: "restStopCount", emoji: "☕", label: "rest stops" },
+  { key: "viewpointCount", emoji: "🏔️", label: "viewpoints" },
 ] as const;
 
 export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteCardProps) {
@@ -30,16 +31,15 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
     .filter((s) => (route.signals as any)[s.key] > 0)
     .slice(0, 3);
 
-  // Score breakdown segments for stacked bar
   const positiveBreakdown = [
     { key: "parks", color: "hsl(160, 84%, 39%)", label: "Parks" },
-    { key: "waterways", color: "hsl(217, 91%, 60%)", label: "Waterways" },
-    { key: "water", color: "hsl(199, 89%, 48%)", label: "Water" },
+    { key: "scenicRoads", color: "hsl(217, 91%, 60%)", label: "Scenic Roads" },
+    { key: "waterfront", color: "hsl(199, 89%, 48%)", label: "Waterfront" },
     { key: "green", color: "hsl(84, 85%, 50%)", label: "Green" },
-    { key: "calmWater", color: "hsl(199, 95%, 74%)", label: "Calm Water" },
-    { key: "launch", color: "hsl(172, 66%, 50%)", label: "Launches" },
-    { key: "portage", color: "hsl(239, 84%, 67%)", label: "Portage" },
-    { key: "lit", color: "hsl(38, 92%, 50%)", label: "Lit" },
+    { key: "lowTraffic", color: "hsl(199, 95%, 74%)", label: "Low Traffic" },
+    { key: "restStops", color: "hsl(172, 66%, 50%)", label: "Rest Stops" },
+    { key: "viewpoints", color: "hsl(239, 84%, 67%)", label: "Viewpoints" },
+    { key: "lit", color: "hsl(38, 92%, 50%)", label: "Well-Lit" },
     { key: "base", color: "hsl(220, 9%, 75%)", label: "Base" },
   ];
 
@@ -112,7 +112,7 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
                 <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
                   {positiveBreakdown.map((seg) => {
                     const val = (route.scoreBreakdown as any)[seg.key] || 0;
-                    if (val === 0) return null;
+                    if (val <= 0) return null;
                     return (
                       <div
                         key={seg.key}
@@ -129,7 +129,7 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
                   {positiveBreakdown.map((seg) => {
                     const val = (route.scoreBreakdown as any)[seg.key] || 0;
-                    if (val === 0) return null;
+                    if (val <= 0) return null;
                     return (
                       <span key={seg.key} className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seg.color }} />
@@ -141,16 +141,16 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
               </div>
 
               {/* Penalties */}
-              {(route.scoreBreakdown.rapids > 0 || route.scoreBreakdown.elevation > 0 || route.scoreBreakdown.motorBoat > 0) && (
+              {(route.scoreBreakdown.construction !== 0 || route.scoreBreakdown.elevation !== 0 || route.scoreBreakdown.highway !== 0) && (
                 <div className="flex flex-wrap gap-2 text-[11px]">
-                  {route.scoreBreakdown.rapids > 0 && (
-                    <span className="text-orange-500">🌀 Rapids -{route.scoreBreakdown.rapids}</span>
+                  {route.scoreBreakdown.construction !== 0 && (
+                    <span className="text-orange-500">🚧 Construction {route.scoreBreakdown.construction}</span>
                   )}
-                  {route.scoreBreakdown.elevation > 0 && (
-                    <span className="text-amber">⛰️ Elevation -{route.scoreBreakdown.elevation}</span>
+                  {route.scoreBreakdown.elevation !== 0 && (
+                    <span className="text-amber-500">⛰️ Elevation {route.scoreBreakdown.elevation}</span>
                   )}
-                  {route.scoreBreakdown.motorBoat > 0 && (
-                    <span className="text-destructive">🚤 Motorboat -{route.scoreBreakdown.motorBoat}</span>
+                  {route.scoreBreakdown.highway !== 0 && (
+                    <span className="text-destructive">🛣️ Highway {route.scoreBreakdown.highway}</span>
                   )}
                 </div>
               )}

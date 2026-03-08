@@ -29,7 +29,7 @@ function MapPlaceholder() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-5xl"
         >
-          🛶
+          🚗
         </motion.div>
         <motion.div
           initial={{ y: 10, opacity: 0 }}
@@ -38,7 +38,7 @@ function MapPlaceholder() {
         >
           <h2 className="text-lg font-semibold text-foreground">Your happy route awaits</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Enter put-in and take-out locations to discover the happiest paddling route
+            Enter start and destination to discover the happiest driving route
           </p>
         </motion.div>
       </div>

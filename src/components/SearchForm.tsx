@@ -42,7 +42,7 @@ export function SearchForm({ onSearch, loading, defaultFrom = "", defaultTo = ""
             type="text"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            placeholder="Put-in location (start)"
+            placeholder="Starting point"
             className="w-full rounded-xl border border-input bg-card py-3 pl-11 pr-10 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button
@@ -101,7 +101,7 @@ export function SearchForm({ onSearch, loading, defaultFrom = "", defaultTo = ""
             type="text"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="Take-out location (end)"
+            placeholder="Destination"
             className="w-full rounded-xl border border-input bg-card py-3 pl-11 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
