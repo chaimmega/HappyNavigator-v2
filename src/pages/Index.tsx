@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
-import { SearchForm } from "@/components/SearchForm";
+import { SearchForm, saveRecentSearch } from "@/components/SearchForm";
 import { RouteCard } from "@/components/RouteCard";
 import { HappyScore } from "@/components/HappyScore";
 import { ElevationChart } from "@/components/ElevationChart";
 import { AISummaryCard } from "@/components/AISummaryCard";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { MapView } from "@/components/MapView";
-import { mockResponse } from "@/data/mockData";
+import { GoogleMapsProvider } from "@/components/GoogleMapsProvider";
 import { NavigateResponse, ROUTE_NAMES, ROUTE_COLORS, formatDistance } from "@/types/navigation";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { motion, AnimatePresence } from "framer-motion";
+import type { PlaceValue } from "@/components/PlaceAutocomplete";
 
 function MapPlaceholder() {
   return (
@@ -67,15 +68,35 @@ function IdleHint() {
   );
 }
 
+function PinModeBanner({ target, onCancel }: { target: "start" | "end"; onCancel: () => void }) {
+  return (
+    <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-lg text-xs text-primary">
+      <span className="animate-pulse">📍</span>
+      <span className="flex-1">Click on the map to set the <strong>{target}</strong> location</span>
+      <button type="button" onClick={onCancel} className="text-primary hover:text-primary/70 font-bold leading-none">
+        ×
+      </button>
+    </div>
+  );
+}
+
 export default function Index() {
   const [result, setResult] = useState<NavigateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState(0);
   const [metric, setMetric] = useState(() => {
     return localStorage.getItem("happynav_metric") !== "false";
   });
   const [isMobile, setIsMobile] = useState(false);
+  const [mapPinTarget, setMapPinTarget] = useState<"start" | "end" | null>(null);
+  const [mapPinPlace, setMapPinPlace] = useState<PlaceValue | undefined>(undefined);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [formStart, setFormStart] = useState<PlaceValue | undefined>(undefined);
+  const [formEnd, setFormEnd] = useState<PlaceValue | undefined>(undefined);
+
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -88,37 +109,149 @@ export default function Index() {
     localStorage.setItem("happynav_metric", String(metric));
   }, [metric]);
 
-  const handleSearch = useCallback((_from: string, _to: string) => {
+  const handleSearch = useCallback(async (data: {
+    start: string;
+    end: string;
+    startCoords?: { lat: number; lng: number };
+    endCoords?: { lat: number; lng: number };
+    via?: { text: string; coords?: { lat: number; lng: number } };
+  }) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setLoadingStep(0);
+    setError(null);
     setResult(null);
 
-    const stepDurations = [800, 1000, 1200, 1000];
-    let current = 0;
-    const advance = () => {
-      current++;
-      if (current < stepDurations.length) {
-        setLoadingStep(current);
-        setTimeout(advance, stepDurations[current]);
-      } else {
-        setLoading(false);
-        setResult(mockResponse);
-        setSelectedRouteId(mockResponse.bestRouteId);
+    // Animate loading steps
+    const stepDurations = [800, 4000, 8000, 12000];
+    const timers = stepDurations.map((dur, i) =>
+      setTimeout(() => setLoadingStep(i), dur)
+    );
+
+    try {
+      const res = await fetch("/api/navigate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setError(json.error ?? "Something went wrong. Please try again.");
+        return;
       }
-    };
-    setTimeout(advance, stepDurations[0]);
+
+      const nav = json as NavigateResponse;
+      setResult(nav);
+      setSelectedRouteId(nav.bestRouteId);
+
+      setFormStart({ text: nav.startName, coords: nav.startCoords });
+      setFormEnd({ text: nav.endName, coords: nav.endCoords });
+
+      if (nav.startCoords && nav.endCoords) {
+        saveRecentSearch({
+          startName: nav.startName,
+          endName: nav.endName,
+          startCoords: nav.startCoords,
+          endCoords: nav.endCoords,
+        });
+      }
+
+      // Update URL for shareability
+      const params = new URLSearchParams({
+        from: `${nav.startCoords.lat},${nav.startCoords.lng}`,
+        to: `${nav.endCoords.lat},${nav.endCoords.lng}`,
+      });
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setError("Network error — please check your connection and try again.");
+    } finally {
+      timers.forEach(clearTimeout);
+      if (!controller.signal.aborted) setLoading(false);
+    }
   }, []);
+
+  // Auto-search from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get("from");
+    const to = params.get("to");
+    if (!from || !to) return;
+
+    const [fromLat, fromLng] = from.split(",").map(Number);
+    const [toLat, toLng] = to.split(",").map(Number);
+    if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) return;
+
+    handleSearch({
+      start: from,
+      end: to,
+      startCoords: { lat: fromLat, lng: fromLng },
+      endCoords: { lat: toLat, lng: toLng },
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle map click for pin mode
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+    if (!mapPinTarget) return;
+    setPinLoading(true);
+    try {
+      const res = await fetch(`/api/reverse?lat=${lat}&lng=${lng}`);
+      const data: { name: string; lat: number; lng: number } = await res.json();
+      setMapPinPlace({ text: data.name, coords: { lat: data.lat, lng: data.lng } });
+    } catch {
+      setMapPinPlace({
+        text: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+        coords: { lat, lng },
+      });
+    } finally {
+      setPinLoading(false);
+      setMapPinTarget(null);
+    }
+  }, [mapPinTarget]);
+
+  const cancelMapPin = () => {
+    setMapPinTarget(null);
+    setMapPinPlace(undefined);
+  };
 
   const selectedRoute = result?.routes.find((r) => r.id === selectedRouteId);
 
   const sidebarContent = (
     <div className="p-5 space-y-5">
       <SearchForm
-        onSearch={handleSearch}
+        onSubmit={handleSearch}
         loading={loading}
-        defaultFrom="Central Park, New York"
-        defaultTo="Brooklyn Bridge, New York"
+        mapPinPlace={mapPinPlace}
+        mapPinTarget={mapPinTarget ?? undefined}
+        onClearMapPin={cancelMapPin}
+        initialStart={formStart}
+        initialEnd={formEnd}
       />
+
+      {mapPinTarget && (
+        <PinModeBanner target={mapPinTarget} onCancel={cancelMapPin} />
+      )}
+
+      {error && (
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-sm text-destructive flex gap-2 items-start">
+          <span className="flex-shrink-0 mt-0.5">⚠️</span>
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            className="flex-shrink-0 text-destructive/50 hover:text-destructive transition-colors leading-none text-base"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Metric toggle */}
       <div className="flex items-center gap-1.5 bg-muted rounded-lg p-1">
@@ -218,7 +351,7 @@ export default function Index() {
         </motion.div>
       )}
 
-      {!result && !loading && <IdleHint />}
+      {!result && !loading && !error && <IdleHint />}
     </div>
   );
 
@@ -231,37 +364,47 @@ export default function Index() {
       startName={result.startName}
       endName={result.endName}
       onSelectRoute={setSelectedRouteId}
+      onMapClick={mapPinTarget ? handleMapClick : undefined}
     />
   ) : (
     <MapPlaceholder />
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <Header metric={metric} onToggleMetric={() => setMetric((v) => !v)} />
+    <GoogleMapsProvider>
+      <div className="flex h-screen flex-col overflow-hidden">
+        <Header
+          metric={metric}
+          onToggleMetric={() => setMetric((v) => !v)}
+          result={result}
+          mapPinTarget={mapPinTarget}
+          pinLoading={pinLoading}
+          onSetPinTarget={setMapPinTarget}
+        />
 
-      {isMobile ? (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-shrink-0 overflow-y-auto custom-scrollbar" style={{ maxHeight: "46vh" }}>
-            {sidebarContent}
-          </div>
-          <div className="flex-1 min-h-[200px]">
-            {mapContent}
-          </div>
-        </div>
-      ) : (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={30} minSize={22} maxSize={45}>
-            <div className="h-full overflow-y-auto custom-scrollbar">
+        {isMobile ? (
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-shrink-0 overflow-y-auto custom-scrollbar" style={{ maxHeight: "46vh" }}>
               {sidebarContent}
             </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={70}>
-            {mapContent}
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      )}
-    </div>
+            <div className="flex-1 min-h-[200px]">
+              {mapContent}
+            </div>
+          </div>
+        ) : (
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            <ResizablePanel defaultSize={30} minSize={22} maxSize={45}>
+              <div className="h-full overflow-y-auto custom-scrollbar">
+                {sidebarContent}
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={70}>
+              {mapContent}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
+      </div>
+    </GoogleMapsProvider>
   );
 }

@@ -1,6 +1,8 @@
-import { ScoredRoute, ROUTE_COLORS, ROUTE_NAMES } from "@/types/navigation";
-import { Coordinates } from "@/types/navigation";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useCallback, useState, useRef } from "react";
+import { GoogleMap, Polyline, Marker, InfoWindow } from "@react-google-maps/api";
+import { ScoredRoute, Coordinates, ROUTE_COLORS, ROUTE_NAMES } from "@/types/navigation";
+
+const MAP_CONTAINER_STYLE = { height: "100%", width: "100%" };
 
 interface MapViewProps {
   routes: ScoredRoute[];
@@ -10,128 +12,162 @@ interface MapViewProps {
   startName: string;
   endName: string;
   onSelectRoute: (id: number) => void;
+  onMapClick?: (lat: number, lng: number) => void;
 }
 
-export function MapView({ routes, selectedRouteId, startCoords, endCoords, startName, endName, onSelectRoute }: MapViewProps) {
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  routes.forEach((r) => r.geometry.forEach(([lng, lat]) => {
-    minLat = Math.min(minLat, lat);
-    maxLat = Math.max(maxLat, lat);
-    minLng = Math.min(minLng, lng);
-    maxLng = Math.max(maxLng, lng);
-  }));
+export function MapView({
+  routes,
+  selectedRouteId,
+  startCoords,
+  endCoords,
+  onSelectRoute,
+  onMapClick,
+}: MapViewProps) {
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
 
-  const padLat = (maxLat - minLat) * 0.18;
-  const padLng = (maxLng - minLng) * 0.18;
-  minLat -= padLat; maxLat += padLat;
-  minLng -= padLng; maxLng += padLng;
+  const handleSelect = useCallback(
+    (id: number) => onSelectRoute(id),
+    [onSelectRoute]
+  );
 
-  const width = 800;
-  const height = 600;
+  const renderOrder = useMemo(
+    () =>
+      [...routes].sort((a, b) =>
+        a.id === selectedRouteId ? 1 : b.id === selectedRouteId ? -1 : 0
+      ),
+    [routes, selectedRouteId]
+  );
 
-  const project = (lng: number, lat: number): [number, number] => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * width;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * height;
-    return [x, y];
-  };
+  // Fit bounds when routes change
+  useEffect(() => {
+    if (!mapRef.current || !routes.length) return;
 
-  const routeToPath = (geometry: [number, number][]) => {
-    return geometry.map(([lng, lat], i) => {
-      const [x, y] = project(lng, lat);
-      return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-    }).join(" ");
-  };
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: startCoords.lat, lng: startCoords.lng });
+    bounds.extend({ lat: endCoords.lat, lng: endCoords.lng });
 
-  const [sx, sy] = project(startCoords.lng, startCoords.lat);
-  const [ex, ey] = project(endCoords.lng, endCoords.lat);
+    routes.forEach((r) =>
+      r.geometry.forEach(([lng, lat]) => bounds.extend({ lat, lng }))
+    );
 
-  const sortedRoutes = [...routes].sort((a, b) =>
-    a.id === selectedRouteId ? 1 : b.id === selectedRouteId ? -1 : 0
+    mapRef.current.fitBounds(bounds, { top: 48, bottom: 48, left: 48, right: 48 });
+  }, [routes, startCoords, endCoords]);
+
+  const handleMapClick = useCallback(
+    (e: google.maps.MapMouseEvent) => {
+      if (onMapClick && e.latLng) {
+        onMapClick(e.latLng.lat(), e.latLng.lng());
+      }
+    },
+    [onMapClick]
   );
 
   return (
-    <div className="relative h-full w-full bg-gradient-to-br from-emerald-50 via-sky-50/30 to-blue-50 overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `
-          linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
-          linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)
-        `,
-        backgroundSize: "40px 40px",
-      }} />
-
-      <div className="absolute inset-0 opacity-[0.015]" style={{
-        backgroundImage: `
-          radial-gradient(circle at 20% 30%, hsl(160, 50%, 50%) 0%, transparent 50%),
-          radial-gradient(circle at 70% 60%, hsl(210, 50%, 50%) 0%, transparent 50%),
-          radial-gradient(circle at 50% 80%, hsl(160, 40%, 45%) 0%, transparent 40%)
-        `,
-      }} />
-
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full max-w-full max-h-full p-4">
-        {sortedRoutes.map((route) => {
+    <div className="relative h-full w-full">
+      <GoogleMap
+        mapContainerStyle={MAP_CONTAINER_STYLE}
+        center={{ lat: startCoords.lat, lng: startCoords.lng }}
+        zoom={13}
+        options={{
+          disableDefaultUI: false,
+          zoomControl: true,
+          mapTypeControl: true,
+          streetViewControl: false,
+          fullscreenControl: true,
+          draggableCursor: onMapClick ? "crosshair" : undefined,
+        }}
+        onLoad={(map) => { mapRef.current = map; }}
+        onClick={onMapClick ? handleMapClick : undefined}
+      >
+        {renderOrder.map((route) => {
           const isSelected = route.id === selectedRouteId;
           const color = ROUTE_COLORS[route.id] || ROUTE_COLORS[0];
+          const path = route.geometry.map(([lng, lat]) => ({ lat, lng }));
+
           return (
-            <g key={route.id} onClick={() => onSelectRoute(route.id)} className="cursor-pointer">
-              {isSelected && (
-                <path d={routeToPath(route.geometry)} fill="none" stroke={color}
-                  strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" opacity="0.12" />
-              )}
-              <path d={routeToPath(route.geometry)} fill="none"
-                stroke={isSelected ? "white" : "transparent"}
-                strokeWidth={isSelected ? 6 : 0} strokeLinecap="round" strokeLinejoin="round" />
-              <path d={routeToPath(route.geometry)} fill="none" stroke={color}
-                strokeWidth={isSelected ? 4 : 2.5} strokeLinecap="round" strokeLinejoin="round"
-                opacity={isSelected ? 1 : 0.35} />
-            </g>
+            <Polyline
+              key={route.id}
+              path={path}
+              options={{
+                strokeColor: color,
+                strokeWeight: isSelected ? 7 : 3,
+                strokeOpacity: isSelected ? 0.95 : 0.35,
+                clickable: true,
+                zIndex: isSelected ? 10 : 1,
+              }}
+              onClick={() => {
+                handleSelect(route.id);
+                setActiveTooltip(route.id);
+              }}
+              onMouseOver={() => setActiveTooltip(route.id)}
+              onMouseOut={() => setActiveTooltip(null)}
+            />
           );
         })}
 
-        {/* Start marker */}
-        <circle cx={sx} cy={sy} r="16" fill="hsl(160, 84%, 39%)" stroke="white" strokeWidth="3" />
-        <text x={sx} y={sy + 5} textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="system-ui">S</text>
+        {activeTooltip !== null && (() => {
+          const route = routes.find((r) => r.id === activeTooltip);
+          if (!route || !route.geometry.length) return null;
+          const midIdx = Math.floor(route.geometry.length / 2);
+          const [lng, lat] = route.geometry[midIdx];
+          return (
+            <InfoWindow
+              position={{ lat, lng }}
+              options={{ disableAutoPan: true, pixelOffset: new google.maps.Size(0, -10) }}
+              onCloseClick={() => setActiveTooltip(null)}
+            >
+              <div className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                {ROUTE_NAMES[route.id]} — Score: {route.happyScore}/100
+              </div>
+            </InfoWindow>
+          );
+        })()}
 
-        {/* End marker */}
-        <circle cx={ex} cy={ey} r="16" fill="hsl(0, 84%, 60%)" stroke="white" strokeWidth="3" />
-        <text x={ex} y={ey + 5} textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="system-ui">E</text>
+        <Marker
+          position={{ lat: startCoords.lat, lng: startCoords.lng }}
+          icon={{
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: "#22c55e",
+            fillOpacity: 1,
+            strokeColor: "#fff",
+            strokeWeight: 2.5,
+          }}
+          label={{
+            text: "S",
+            color: "#fff",
+            fontSize: "10px",
+            fontWeight: "bold",
+          }}
+          title="Start"
+        />
 
-        {/* Start label */}
-        <rect x={sx + 22} y={sy - 14} width={Math.min(startName.length * 6.5 + 16, 180)} height="28" rx="8"
-          fill="white" fillOpacity="0.95" stroke="hsl(160, 84%, 39%)" strokeWidth="1.5" />
-        <text x={sx + 30} y={sy + 4} fill="hsl(220, 25%, 10%)" fontSize="11" fontWeight="600" fontFamily="system-ui">
-          {startName.length > 24 ? startName.slice(0, 24) + "\u2026" : startName}
-        </text>
+        <Marker
+          position={{ lat: endCoords.lat, lng: endCoords.lng }}
+          icon={{
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: "#ef4444",
+            fillOpacity: 1,
+            strokeColor: "#fff",
+            strokeWeight: 2.5,
+          }}
+          label={{
+            text: "E",
+            color: "#fff",
+            fontSize: "10px",
+            fontWeight: "bold",
+          }}
+          title="End"
+        />
+      </GoogleMap>
 
-        {/* End label */}
-        <rect x={ex + 22} y={ey - 14} width={Math.min(endName.length * 6.5 + 16, 180)} height="28" rx="8"
-          fill="white" fillOpacity="0.95" stroke="hsl(0, 84%, 60%)" strokeWidth="1.5" />
-        <text x={ex + 30} y={ey + 4} fill="hsl(220, 25%, 10%)" fontSize="11" fontWeight="600" fontFamily="system-ui">
-          {endName.length > 24 ? endName.slice(0, 24) + "\u2026" : endName}
-        </text>
-      </svg>
-
-      {/* Route legend */}
-      <motion.div
-        initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-        className="absolute bottom-3 left-3 flex items-center gap-4 rounded-xl bg-card/95 backdrop-blur-sm px-4 py-2.5 shadow-lg border text-[11px]"
-      >
-        {routes.map((r) => (
-          <button key={r.id} onClick={() => onSelectRoute(r.id)}
-            className={`flex items-center gap-1.5 transition-all ${
-              r.id === selectedRouteId ? "opacity-100 font-semibold scale-105" : "opacity-50 hover:opacity-75"
-            }`}
-          >
-            <span className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: ROUTE_COLORS[r.id] }} />
-            <span>{ROUTE_NAMES[r.id]}</span>
-            <span className="text-muted-foreground font-normal">({r.happyScore})</span>
-          </button>
-        ))}
-      </motion.div>
-
-      <div className="absolute top-3 right-3 rounded-lg bg-card/90 backdrop-blur-sm px-3 py-1.5 text-[10px] text-muted-foreground border shadow-sm flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-        Demo Mode
-      </div>
+      {onMapClick && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-card/90 backdrop-blur-sm border border-border shadow-sm rounded-full px-3 py-1 text-xs text-muted-foreground pointer-events-none">
+          Click map to set location
+        </div>
+      )}
     </div>
   );
 }

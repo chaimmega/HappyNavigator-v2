@@ -1,12 +1,17 @@
 import logo from "@/assets/logo.png";
 import { motion } from "framer-motion";
+import type { NavigateResponse } from "@/types/navigation";
 
 interface HeaderProps {
   metric?: boolean;
   onToggleMetric?: () => void;
+  result?: NavigateResponse | null;
+  mapPinTarget?: "start" | "end" | null;
+  pinLoading?: boolean;
+  onSetPinTarget?: (target: "start" | "end") => void;
 }
 
-export function Header({ metric, onToggleMetric }: HeaderProps) {
+export function Header({ metric, onToggleMetric, result, mapPinTarget, pinLoading, onSetPinTarget }: HeaderProps) {
   return (
     <header className="relative overflow-hidden text-primary-foreground"
       style={{ background: "linear-gradient(135deg, hsl(280, 70%, 45%), hsl(210, 85%, 50%), hsl(160, 75%, 38%))" }}
@@ -53,6 +58,27 @@ export function Header({ metric, onToggleMetric }: HeaderProps) {
               <span className="text-white/50">/</span>
               <span className={!metric ? "text-white font-bold" : ""}>mi</span>
             </button>
+          )}
+          {result && !mapPinTarget && onSetPinTarget && (
+            <div className="hidden md:flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onSetPinTarget("start")}
+                className="text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
+              >
+                📍 Pin start
+              </button>
+              <button
+                type="button"
+                onClick={() => onSetPinTarget("end")}
+                className="text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
+              >
+                📍 Pin end
+              </button>
+            </div>
+          )}
+          {pinLoading && (
+            <span className="text-xs text-white/70 animate-pulse">Locating…</span>
           )}
           <div className="hidden items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm md:flex">
             <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
