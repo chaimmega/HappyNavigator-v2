@@ -35,24 +35,13 @@ function computeBbox(points: [number, number][], bufferDeg = 0.003): string {
 /**
  * Build a compact Overpass QL query for driving-relevant happiness signals.
  * Uses a global bbox pre-filter + around corridor.
- *
- * Tag categories queried:
- *   Parks / gardens (scenic spots along route)
- *   Waterfront (rivers, lakes, coastline — scenic views while driving)
- *   Green land-use (forest, grass, meadow — pleasant surroundings)
- *   Scenic roads / tourism routes (viewpoints, attractions)
- *   Rest stops (cafes, restaurants, fuel, rest areas)
- *   Lit roads (well-lit for night driving)
- *   Low-traffic roads (residential, living streets, tracks)
- *   Construction zones (penalty)
- *   Motorways / trunk roads (penalty — stressful driving)
  */
-function buildQuery(points: [number, number][], radiusM = 250): string {
+function buildQuery(points: [number, number][], radiusM = 300): string {
   const coords = points.map(([lng, lat]) => `${lat},${lng}`).join(",");
   const around = `around:${radiusM},${coords}`;
   const bbox = computeBbox(points);
 
-  return `[out:json][timeout:12][bbox:${bbox}];
+  return `[out:json][timeout:14][bbox:${bbox}];
 (
   node["leisure"="park"](${around});
   way["leisure"="park"](${around});
@@ -66,6 +55,9 @@ function buildQuery(points: [number, number][], radiusM = 250): string {
   node["tourism"="viewpoint"](${around});
   node["tourism"="attraction"](${around});
   node["information"="guidepost"](${around});
+  way["route"="scenic"](${around});
+  way["designation"~"scenic"](${around});
+  node["scenic"="yes"](${around});
   node["amenity"~"^(cafe|restaurant)$"](${around});
   node["amenity"="fuel"](${around});
   node["highway"="rest_area"](${around});
@@ -116,8 +108,8 @@ async function fetchOverpass(query: string): Promise<Response> {
 export async function getHappinessSignals(
   coords: [number, number][]
 ): Promise<HappinessSignals> {
-  const sampled = sampleCoords(coords, 10);
-  const query = buildQuery(sampled);
+  const sampled = sampleCoords(coords, 25);
+  const query = buildQuery(sampled, 300);
 
   try {
     const resp = await fetchOverpass(query);
@@ -146,56 +138,48 @@ export async function getHappinessSignals(
     for (const el of elements) {
       const t = el.tags ?? {};
 
-      // Parks and gardens
       if (t.leisure === "park" || t.leisure === "garden") parkCount++;
 
-      // Waterfront — rivers, lakes, coastline
       if (t.natural === "water" || t.waterway || t.natural === "coastline") waterfrontCount++;
 
-      // Green spaces — forests, meadows, grassland
       if (
         t.landuse === "forest" || t.landuse === "grass" ||
         t.landuse === "meadow" || t.landuse === "village_green" ||
         t.natural === "wood" || t.natural === "scrub" || t.natural === "heath"
       ) greenCount++;
 
-      // Scenic / viewpoints / tourism
       if (
         t.tourism === "viewpoint" ||
         t.tourism === "attraction" ||
         t.information === "guidepost"
       ) viewpointCount++;
 
-      // Rest stops — cafes, restaurants, fuel, rest areas, charging
       if (
         t.amenity === "cafe" || t.amenity === "restaurant" ||
         t.amenity === "fuel" || t.amenity === "charging_station" ||
         t.highway === "rest_area"
       ) restStopCount++;
 
-      // Well-lit roads
       if (t.lit === "yes") litCount++;
 
-      // Low-traffic / quiet roads (residential, living streets)
       if (
         t.highway === "residential" ||
         t.highway === "living_street" ||
         t.highway === "unclassified"
       ) lowTrafficCount++;
 
-      // Scenic roads — roads near parks/water count, plus any road tagged scenic
-      // (OSM doesn't have a standard "scenic" tag, so we proxy via tourism)
-      if (t.highway && (t.tourism || t.scenic)) scenicRoadCount++;
+      // Explicit scenic tags
+      if (t.route === "scenic" || t.designation?.includes("scenic") || t.scenic === "yes") {
+        scenicRoadCount++;
+      }
 
-      // Construction zones — penalty
       if (t.highway === "construction" || t.construction) constructionCount++;
 
-      // Motorways / trunk roads — penalty (stressful, boring driving)
       if (t.highway === "motorway" || t.highway === "trunk") highwayCount++;
     }
 
-    // Scenic road count: also add 1 for every viewpoint as proxy for scenic surroundings
-    scenicRoadCount += viewpointCount;
+    // Derive scenic road count from nearby parks, waterfront, and viewpoints
+    scenicRoadCount += Math.floor((parkCount + waterfrontCount + viewpointCount) * 0.8);
 
     return {
       parkCount, waterfrontCount, scenicRoadCount, greenCount,

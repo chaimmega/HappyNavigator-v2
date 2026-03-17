@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { ScoredRoute, formatDistance, formatDuration, formatElevation, estimateCO2Saved, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
+import { ScoredRoute, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
 import { HappyScore } from "./HappyScore";
 import { SuggestedStops } from "./SuggestedStops";
-import { Download, Leaf, Flame } from "lucide-react";
+import { Download, Fuel } from "lucide-react";
 
 interface RouteCardProps {
   route: ScoredRoute;
@@ -46,9 +46,42 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
     (sum, s) => sum + ((route.scoreBreakdown as any)[s.key] || 0), 0
   );
 
-  const calories = Math.round(50 * (route.duration / 3600));
-  const co2Grams = estimateCO2Saved(route.distance);
-  const co2Display = co2Grams >= 1000 ? `${(co2Grams / 1000).toFixed(1)} kg` : `${co2Grams} g`;
+  // Fuel cost estimate: 30 MPG, $3.80/gallon
+  const fuelGallons = route.distance / 1000 / 1.609 / 30;
+  const fuelCost = (fuelGallons * 3.80).toFixed(2);
+
+  // Stress score from penalties
+  const stressScore = Math.min(
+    100,
+    Math.round(
+      ((route.scoreBreakdown.highway + route.scoreBreakdown.construction) / 27) * 100
+    )
+  );
+  const stressLabel = stressScore <= 20 ? "Very Calm" : stressScore <= 50 ? "Moderate" : "Stressful";
+
+  function handleExportGPX() {
+    const coords = route.geometry;
+    const gpxName = `${routeName} — Happy Navigator`;
+    const trkpts = coords
+      .map(([lng, lat]) => `    <trkpt lat="${lat}" lon="${lng}"></trkpt>`)
+      .join("\n");
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Happy Navigator" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${gpxName}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+    const blob = new Blob([gpx], { type: "application/gpx+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `happy-route-${routeName.split(" ")[1]?.toLowerCase() ?? "a"}.gpx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <motion.div
@@ -171,15 +204,14 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
                 })}
               </div>
 
-              {/* Calories & CO2 */}
+              {/* Fuel cost & Stress score */}
               <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1" title="Estimated calories burned driving">
-                  <Flame className="h-3 w-3 text-orange-400" />
-                  ~{calories} kcal
+                <span className="flex items-center gap-1" title="Estimated fuel cost at 30 MPG, $3.80/gal">
+                  <Fuel className="h-3 w-3 text-amber-500" />
+                  ~${fuelCost} fuel est.
                 </span>
-                <span className="flex items-center gap-1 text-primary" title="CO₂ saved vs average highway route">
-                  <Leaf className="h-3 w-3" />
-                  saves ~{co2Display} CO₂
+                <span className="flex items-center gap-1" title="Drive stress based on highway and construction penalties">
+                  🧘 {stressLabel} drive
                 </span>
               </div>
 
@@ -187,7 +219,10 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
               <SuggestedStops route={route} />
 
               {/* Export GPX */}
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleExportGPX(); }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted"
+              >
                 <Download className="h-3.5 w-3.5" />
                 Export GPX
               </button>

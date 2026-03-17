@@ -91,9 +91,5 @@ export function formatElevation(meters: number, metric: boolean): string {
   return `↑ ${Math.round(meters * 3.28084)} ft`;
 }
 
-export function estimateCO2Saved(distanceMeters: number): number {
-  return Math.round((distanceMeters / 1000) * 120);
-}
-
 export const ROUTE_COLORS = ["hsl(155, 75%, 42%)", "hsl(210, 90%, 55%)", "hsl(25, 95%, 55%)"];
 export const ROUTE_NAMES = ["Route A", "Route B", "Route C"];

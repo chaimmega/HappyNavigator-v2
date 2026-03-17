@@ -311,10 +311,9 @@ export default function Index() {
                   onClick={() => setSelectedRouteId(route.id)}
                   className={`rounded-xl border-2 p-2.5 text-center transition-all ${
                     isSelected
-                      ? "bg-card shadow-md"
+                      ? "bg-card shadow-md border-primary/30"
                       : "border-transparent bg-muted/50 hover:bg-accent"
                   }`}
-                  style={isSelected ? { borderColor: color + "50" } : {}}
                 >
                   <p className="text-xs font-semibold text-foreground truncate">
                     {ROUTE_NAMES[route.id]}
@@ -349,13 +348,17 @@ export default function Index() {
             ))}
           </div>
 
-          {selectedRoute?.elevationPoints && (
+          {selectedRoute?.elevationPoints ? (
             <ElevationChart
               points={selectedRoute.elevationPoints}
               gainM={selectedRoute.elevationGainM || 0}
               metric={metric}
               totalDistanceM={selectedRoute.distance}
             />
+          ) : selectedRoute && (
+            <p className="text-xs text-muted-foreground text-center py-2">
+              Elevation data unavailable for this route.
+            </p>
           )}
         </motion.div>
       )}
@@ -393,8 +396,14 @@ export default function Index() {
 
         {isMobile ? (
           <div className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex-shrink-0 overflow-y-auto custom-scrollbar" style={{ maxHeight: "46vh" }}>
-              {sidebarContent}
+            <div className="relative flex-shrink-0">
+              <div
+                className="overflow-y-auto scroll-smooth custom-scrollbar"
+                style={{ maxHeight: "52vh", scrollbarWidth: "thin" }}
+              >
+                {sidebarContent}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent" />
             </div>
             <div className="flex-1 min-h-[200px]">
               {mapContent}

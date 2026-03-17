@@ -60,18 +60,18 @@ export function Header({ metric, onToggleMetric, result, mapPinTarget, pinLoadin
             </button>
           )}
           {result && !mapPinTarget && onSetPinTarget && (
-            <div className="hidden md:flex items-center gap-1">
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => onSetPinTarget("start")}
-                className="text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
+                className="text-[9px] md:text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
               >
                 📍 Pin start
               </button>
               <button
                 type="button"
                 onClick={() => onSetPinTarget("end")}
-                className="text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
+                className="text-[9px] md:text-[10px] text-white/70 hover:text-white border border-white/20 rounded px-1.5 py-1 transition-colors bg-white/10"
               >
                 📍 Pin end
               </button>
