@@ -14,12 +14,12 @@ interface RouteCardProps {
 
 const signalChips = [
   { key: "parkCount", emoji: "🌳", label: "parks" },
-  { key: "waterCount", emoji: "💧", label: "water" },
-  { key: "waterwayCount", emoji: "🌊", label: "waterways" },
-  { key: "calmWaterCount", emoji: "🏞️", label: "calm water" },
+  { key: "waterfrontCount", emoji: "💧", label: "waterfront" },
+  { key: "scenicRoadCount", emoji: "🛣️", label: "scenic roads" },
+  { key: "lowTrafficCount", emoji: "🚗", label: "low traffic" },
   { key: "greenCount", emoji: "🌿", label: "green" },
-  { key: "launchCount", emoji: "🚣", label: "launches" },
-  { key: "portageCount", emoji: "🥾", label: "portage" },
+  { key: "restStopCount", emoji: "☕", label: "rest stops" },
+  { key: "viewpointCount", emoji: "🏔️", label: "viewpoints" },
 ] as const;
 
 export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteCardProps) {
@@ -32,12 +32,12 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
 
   const positiveBreakdown = [
     { key: "parks", color: "hsl(160, 84%, 39%)", label: "Parks" },
-    { key: "waterways", color: "hsl(217, 91%, 60%)", label: "Waterways" },
-    { key: "water", color: "hsl(199, 89%, 48%)", label: "Water" },
+    { key: "scenicRoads", color: "hsl(217, 91%, 60%)", label: "Scenic Roads" },
+    { key: "waterfront", color: "hsl(199, 89%, 48%)", label: "Waterfront" },
     { key: "green", color: "hsl(84, 85%, 50%)", label: "Green" },
-    { key: "calmWater", color: "hsl(199, 95%, 74%)", label: "Calm Water" },
-    { key: "launch", color: "hsl(172, 66%, 50%)", label: "Launches" },
-    { key: "portage", color: "hsl(239, 84%, 67%)", label: "Portage" },
+    { key: "lowTraffic", color: "hsl(199, 95%, 74%)", label: "Low Traffic" },
+    { key: "restStops", color: "hsl(172, 66%, 50%)", label: "Rest Stops" },
+    { key: "viewpoints", color: "hsl(239, 84%, 67%)", label: "Viewpoints" },
     { key: "lit", color: "hsl(38, 92%, 50%)", label: "Well-Lit" },
     { key: "base", color: "hsl(220, 9%, 75%)", label: "Base" },
   ];
@@ -145,16 +145,16 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
               </div>
 
               {/* Penalties */}
-              {(route.scoreBreakdown.rapids !== 0 || route.scoreBreakdown.elevation !== 0 || route.scoreBreakdown.motorBoat !== 0) && (
+              {(route.scoreBreakdown.construction !== 0 || route.scoreBreakdown.elevation !== 0 || route.scoreBreakdown.highway !== 0) && (
                 <div className="flex flex-wrap gap-2.5 text-[11px]">
-                  {route.scoreBreakdown.rapids !== 0 && (
-                    <span className="text-orange-500">🌊 Rapids -{route.scoreBreakdown.rapids}</span>
+                  {route.scoreBreakdown.construction !== 0 && (
+                    <span className="text-orange-500">🚧 Construction -{route.scoreBreakdown.construction}</span>
                   )}
                   {route.scoreBreakdown.elevation !== 0 && (
-                    <span className="text-amber">⛰️ Elevation -{route.scoreBreakdown.elevation}</span>
+                    <span className="text-amber">⛰️ Hilly -{route.scoreBreakdown.elevation}</span>
                   )}
-                  {route.scoreBreakdown.motorBoat !== 0 && (
-                    <span className="text-destructive">🚤 Motor Boats -{route.scoreBreakdown.motorBoat}</span>
+                  {route.scoreBreakdown.highway !== 0 && (
+                    <span className="text-destructive">🛣️ Highway -{route.scoreBreakdown.highway}</span>
                   )}
                 </div>
               )}
@@ -173,11 +173,11 @@ export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteC
 
               {/* Calories & CO2 */}
               <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1" title="Estimated calories burned">
+                <span className="flex items-center gap-1" title="Estimated calories burned driving">
                   <Flame className="h-3 w-3 text-orange-400" />
                   ~{calories} kcal
                 </span>
-                <span className="flex items-center gap-1 text-primary" title="CO₂ saved vs average route">
+                <span className="flex items-center gap-1 text-primary" title="CO₂ saved vs average highway route">
                   <Leaf className="h-3 w-3" />
                   saves ~{co2Display} CO₂
                 </span>

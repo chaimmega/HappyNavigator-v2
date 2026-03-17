@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
 import { geocode } from "./lib/nominatim.js";
-import { getCanoeRoutes } from "./lib/osrm.js";
+import { getDrivingRoutes } from "./lib/osrm.js";
 import { getHappinessSignals } from "./lib/overpass.js";
 import { getRouteElevation } from "./lib/elevation.js";
 import { computeHappyScore } from "./lib/happiness.js";
@@ -64,39 +64,39 @@ async function callAI(
     durationMin: Math.round(r.duration / 60),
     happyScore: r.happyScore,
     parks: r.signals.parkCount,
-    water: r.signals.waterCount,
-    waterways: r.signals.waterwayCount,
+    waterfront: r.signals.waterfrontCount,
+    scenicRoads: r.signals.scenicRoadCount,
     greenSpaces: r.signals.greenCount,
     litSegments: r.signals.litCount,
-    calmWater: r.signals.calmWaterCount,
-    boatLaunches: r.signals.launchCount,
-    portagePoints: r.signals.portageCount,
-    motorBoatZones: r.signals.motorBoatCount,
-    rapids: r.signals.rapidCount,
+    lowTraffic: r.signals.lowTrafficCount,
+    restStops: r.signals.restStopCount,
+    viewpoints: r.signals.viewpointCount,
+    construction: r.signals.constructionCount,
+    highways: r.signals.highwayCount,
     elevationGainM: r.elevationGainM ?? null,
     partialData: r.signals.partial,
   }));
 
-  const prompt = `You are an expert canoe route advisor. Analyse these candidate routes and pick the one that will give a paddler the happiest experience.
+  const prompt = `You are an expert scenic driving route advisor. Analyse these candidate routes and pick the one that will give a driver the most enjoyable, stress-free experience.
 
 Route: ${startName} → ${endName}
 
 Scored routes (all data per km, higher = better except penalties):
 ${JSON.stringify(summary, null, 2)}
 
-Score factors: parks (+30 max), waterways (+25), water features (+20), green spaces (+15), calm water (+15), lighting (+10), launches (+8), portage points (+5). Penalties: motorboat zones (−12), rapids (−15), steep portage (−20). Partial data = 15% score reduction.
+Score factors: parks (+30 max), scenic roads/viewpoints (+25), waterfront views (+20), green spaces (+15), low-traffic roads (+15), well-lit roads (+10), viewpoints (+10), rest stops/cafes (+8). Penalties: construction zones (−15), steep elevation (−15), motorways/highways (−12). Partial data = 15% score reduction.
 
 Instructions:
-1. Choose the bestRouteId that you genuinely believe gives the happiest paddling experience. The numeric happyScore is a strong signal but you may override it if another route has clearly better qualitative factors (e.g. far more calm water, far fewer rapids, meaningfully less elevation, better launches) that the score under-weights.
-2. Write 2–3 short, specific bullets explaining your pick (cite actual numbers: waterway count, park count, calm sections, rapids avoided, etc.).
-3. Only add suggestedStops if the data strongly implies notable features (parks, launches, calm bays). Leave as [] if uncertain.
+1. Choose the bestRouteId that you genuinely believe gives the happiest driving experience. The numeric happyScore is a strong signal but you may override it if another route has clearly better qualitative factors (e.g. far more scenic roads, far less highway driving, meaningfully more parks and waterfront views) that the score under-weights.
+2. Write 2–3 short, specific bullets explaining your pick (cite actual numbers: park count, viewpoint count, scenic road segments, construction zones avoided, etc.).
+3. Suggest 1–3 interesting stops along the route if the data implies notable features (parks, viewpoints, cafes). Leave as [] if uncertain.
 4. Be specific and factual — mention numbers from the data, not generic advice.
 
 Respond with ONLY valid JSON:
 {
   "bestRouteId": <number>,
   "bullets": ["<bullet 1>", "<bullet 2>"],
-  "suggestedStops": []
+  "suggestedStops": ["<stop name — brief description>"]
 }`;
 
   try {
@@ -214,10 +214,10 @@ app.post("/api/navigate", async (req, res) => {
     }
   }
 
-  // 3. Fetch routes
-  let osrmRoutes;
+  // 3. Fetch driving routes
+  let drivingRoutes;
   try {
-    osrmRoutes = await getCanoeRoutes(
+    drivingRoutes = await getDrivingRoutes(
       { lat: startGeo.lat, lng: startGeo.lng },
       { lat: endGeo.lat, lng: endGeo.lng },
       viaCoords
@@ -228,15 +228,15 @@ app.post("/api/navigate", async (req, res) => {
     return;
   }
 
-  if (!osrmRoutes.length) {
+  if (!drivingRoutes.length) {
     res.status(404).json({ error: "No routes found between these locations." });
     return;
   }
 
-  // 4. Score each route
-  console.log(`[navigate] scoring ${osrmRoutes.length} route(s) via Overpass + elevation...`);
+  // 4. Score each route (parallel Overpass + elevation)
+  console.log(`[navigate] scoring ${drivingRoutes.length} route(s) via Overpass + elevation...`);
   const scoredRoutes: ScoredRoute[] = await Promise.all(
-    osrmRoutes.map(async (route, i) => {
+    drivingRoutes.map(async (route, i) => {
       const [signals, elevResult] = await Promise.all([
         getHappinessSignals(route.geometry.coordinates),
         getRouteElevation(route.geometry.coordinates),

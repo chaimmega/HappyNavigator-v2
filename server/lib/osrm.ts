@@ -51,7 +51,11 @@ function decodePolyline(encoded: string): [number, number][] {
   return points;
 }
 
-export async function getCanoeRoutes(
+/**
+ * Fetch driving route alternatives between two points (with optional via-point)
+ * using Google Directions API in driving mode.
+ */
+export async function getDrivingRoutes(
   start: Coordinates,
   end: Coordinates,
   via?: Coordinates
@@ -63,7 +67,7 @@ export async function getCanoeRoutes(
   const params = new URLSearchParams({
     origin: `${start.lat},${start.lng}`,
     destination: `${end.lat},${end.lng}`,
-    mode: "walking",
+    mode: "driving",
     alternatives: "true",
     key: API_KEY,
   });

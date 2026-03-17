@@ -3,47 +3,42 @@ export interface Coordinates {
   lng: number;
 }
 
-/** Raw signals collected from OSM Overpass for a route */
 export interface HappinessSignals {
   parkCount: number;
-  waterCount: number;
-  waterwayCount: number;
+  waterfrontCount: number;
+  scenicRoadCount: number;
   greenCount: number;
   litCount: number;
-  calmWaterCount: number;
-  rapidCount: number;
-  launchCount: number;
-  portageCount: number;
-  motorBoatCount: number;
-  /** true when Overpass timed out / errored — scores are estimated */
+  lowTrafficCount: number;
+  constructionCount: number;
+  restStopCount: number;
+  viewpointCount: number;
+  highwayCount: number;
   partial: boolean;
 }
 
-/** Per-category score contributions, each capped at their max */
 export interface ScoreBreakdown {
   parks: number;
-  waterways: number;
-  water: number;
+  scenicRoads: number;
+  waterfront: number;
   green: number;
   lit: number;
-  calmWater: number;
-  launch: number;
-  portage: number;
+  lowTraffic: number;
+  restStops: number;
+  viewpoints: number;
   base: number;
-  rapids: number;
+  construction: number;
   elevation: number;
-  motorBoat: number;
+  highway: number;
 }
 
-/** A route enriched with happiness data */
 export interface ScoredRoute {
   id: number;
-  /** [lng, lat] pairs — GeoJSON order */
   geometry: [number, number][];
-  distance: number; // metres
-  duration: number; // seconds
+  distance: number;
+  duration: number;
   signals: HappinessSignals;
-  happyScore: number; // 0–100
+  happyScore: number;
   scoreBreakdown: ScoreBreakdown;
   elevationGainM?: number;
   elevationPoints?: number[];
@@ -63,15 +58,6 @@ export interface NavigateResponse {
   endCoords: Coordinates;
   startName: string;
   endName: string;
-}
-
-export interface NavigateRequest {
-  start?: string;
-  end?: string;
-  startCoords?: { lat: number; lng: number };
-  endCoords?: { lat: number; lng: number };
-  googleMapsUrl?: string;
-  via?: { text: string; coords?: { lat: number; lng: number } };
 }
 
 export type ScoreTier = "scenic" | "okay" | "low";

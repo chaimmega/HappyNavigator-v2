@@ -5,6 +5,10 @@ const OVERPASS_SERVERS = [
   "https://overpass.kumi.systems/api/interpreter",
 ];
 
+/**
+ * Evenly sample up to `maxPoints` coordinates from a polyline,
+ * always including the first AND last point so the full route is represented.
+ */
 export function sampleCoords(
   coords: [number, number][],
   maxPoints = 10
@@ -14,6 +18,10 @@ export function sampleCoords(
   return Array.from({ length: maxPoints }, (_, i) => coords[Math.round(i * step)]);
 }
 
+/**
+ * Compute a bounding box string (south,west,north,east) from route coordinates
+ * with a small buffer in degrees (~300m).
+ */
 function computeBbox(points: [number, number][], bufferDeg = 0.003): string {
   const lats = points.map(([, lat]) => lat);
   const lngs = points.map(([lng]) => lng);
@@ -24,6 +32,21 @@ function computeBbox(points: [number, number][], bufferDeg = 0.003): string {
   return `${s},${w},${n},${e}`;
 }
 
+/**
+ * Build a compact Overpass QL query for driving-relevant happiness signals.
+ * Uses a global bbox pre-filter + around corridor.
+ *
+ * Tag categories queried:
+ *   Parks / gardens (scenic spots along route)
+ *   Waterfront (rivers, lakes, coastline — scenic views while driving)
+ *   Green land-use (forest, grass, meadow — pleasant surroundings)
+ *   Scenic roads / tourism routes (viewpoints, attractions)
+ *   Rest stops (cafes, restaurants, fuel, rest areas)
+ *   Lit roads (well-lit for night driving)
+ *   Low-traffic roads (residential, living streets, tracks)
+ *   Construction zones (penalty)
+ *   Motorways / trunk roads (penalty — stressful driving)
+ */
 function buildQuery(points: [number, number][], radiusM = 250): string {
   const coords = points.map(([lng, lat]) => `${lat},${lng}`).join(",");
   const around = `around:${radiusM},${coords}`;
@@ -34,29 +57,38 @@ function buildQuery(points: [number, number][], radiusM = 250): string {
   node["leisure"="park"](${around});
   way["leisure"="park"](${around});
   way["leisure"="garden"](${around});
-  way["landuse"~"^(forest|grass|meadow|village_green)$"](${around});
-  way["natural"~"^(wood|scrub|heath)$"](${around});
   node["natural"="water"](${around});
   way["natural"="water"](${around});
-  way["waterway"~"^(river|canal|stream|drain|riverbank)$"](${around});
-  node["leisure"="slipway"](${around});
-  way["leisure"="slipway"](${around});
-  node["canoe"~"^(put_in|portage|yes)$"](${around});
-  node["portage"="yes"](${around});
+  way["waterway"~"^(river|canal|stream|riverbank)$"](${around});
+  way["natural"="coastline"](${around});
+  way["landuse"~"^(forest|grass|meadow|village_green)$"](${around});
+  way["natural"~"^(wood|scrub|heath)$"](${around});
+  node["tourism"="viewpoint"](${around});
+  node["tourism"="attraction"](${around});
+  node["information"="guidepost"](${around});
+  node["amenity"~"^(cafe|restaurant)$"](${around});
+  node["amenity"="fuel"](${around});
+  node["highway"="rest_area"](${around});
+  node["amenity"="charging_station"](${around});
+  way["highway"~"^(residential|living_street|unclassified)$"](${around});
   way["lit"="yes"](${around});
-  node["whitewater:rapid_grade"](${around});
-  way["motorboat"~"^(yes|designated)$"](${around});
+  way["highway"="construction"](${around});
+  node["construction"](${around});
+  way["highway"~"^(motorway|trunk)$"](${around});
 );
 out tags qt;`;
 }
 
 const EMPTY_SIGNALS: HappinessSignals = {
-  parkCount: 0, waterCount: 0, waterwayCount: 0, greenCount: 0,
-  litCount: 0, calmWaterCount: 0, rapidCount: 0,
-  launchCount: 0, portageCount: 0, motorBoatCount: 0,
+  parkCount: 0, waterfrontCount: 0, scenicRoadCount: 0, greenCount: 0,
+  litCount: 0, lowTrafficCount: 0, constructionCount: 0,
+  restStopCount: 0, viewpointCount: 0, highwayCount: 0,
   partial: true,
 };
 
+/**
+ * Fetch from Overpass, trying fallback servers on failure.
+ */
 async function fetchOverpass(query: string): Promise<Response> {
   let lastErr: unknown;
   for (const server of OVERPASS_SERVERS) {
@@ -77,6 +109,10 @@ async function fetchOverpass(query: string): Promise<Response> {
   throw lastErr;
 }
 
+/**
+ * Query OSM via Overpass for happiness signals along a driving route.
+ * Degrades gracefully on timeout / rate-limit — returns zero counts with partial=true.
+ */
 export async function getHappinessSignals(
   coords: [number, number][]
 ): Promise<HappinessSignals> {
@@ -97,47 +133,74 @@ export async function getHappinessSignals(
     console.log(`[overpass] ${elements.length} elements returned`);
 
     let parkCount = 0;
-    let waterCount = 0;
-    let waterwayCount = 0;
+    let waterfrontCount = 0;
+    let scenicRoadCount = 0;
     let greenCount = 0;
     let litCount = 0;
-    let calmWaterCount = 0;
-    let rapidCount = 0;
-    let launchCount = 0;
-    let portageCount = 0;
-    let motorBoatCount = 0;
+    let lowTrafficCount = 0;
+    let constructionCount = 0;
+    let restStopCount = 0;
+    let viewpointCount = 0;
+    let highwayCount = 0;
 
     for (const el of elements) {
       const t = el.tags ?? {};
 
+      // Parks and gardens
       if (t.leisure === "park" || t.leisure === "garden") parkCount++;
 
+      // Waterfront — rivers, lakes, coastline
+      if (t.natural === "water" || t.waterway || t.natural === "coastline") waterfrontCount++;
+
+      // Green spaces — forests, meadows, grassland
       if (
         t.landuse === "forest" || t.landuse === "grass" ||
         t.landuse === "meadow" || t.landuse === "village_green" ||
         t.natural === "wood" || t.natural === "scrub" || t.natural === "heath"
       ) greenCount++;
 
-      if (t.natural === "water" || t.waterway) waterCount++;
-      if (t.waterway) waterwayCount++;
-      if (t.natural === "water") calmWaterCount++;
+      // Scenic / viewpoints / tourism
+      if (
+        t.tourism === "viewpoint" ||
+        t.tourism === "attraction" ||
+        t.information === "guidepost"
+      ) viewpointCount++;
+
+      // Rest stops — cafes, restaurants, fuel, rest areas, charging
+      if (
+        t.amenity === "cafe" || t.amenity === "restaurant" ||
+        t.amenity === "fuel" || t.amenity === "charging_station" ||
+        t.highway === "rest_area"
+      ) restStopCount++;
+
+      // Well-lit roads
       if (t.lit === "yes") litCount++;
 
+      // Low-traffic / quiet roads (residential, living streets)
       if (
-        t.leisure === "slipway" ||
-        t.canoe === "put_in" ||
-        t.canoe === "yes"
-      ) launchCount++;
+        t.highway === "residential" ||
+        t.highway === "living_street" ||
+        t.highway === "unclassified"
+      ) lowTrafficCount++;
 
-      if (t.portage === "yes" || t.canoe === "portage") portageCount++;
-      if (t["whitewater:rapid_grade"]) rapidCount++;
-      if (t.motorboat === "yes" || t.motorboat === "designated") motorBoatCount++;
+      // Scenic roads — roads near parks/water count, plus any road tagged scenic
+      // (OSM doesn't have a standard "scenic" tag, so we proxy via tourism)
+      if (t.highway && (t.tourism || t.scenic)) scenicRoadCount++;
+
+      // Construction zones — penalty
+      if (t.highway === "construction" || t.construction) constructionCount++;
+
+      // Motorways / trunk roads — penalty (stressful, boring driving)
+      if (t.highway === "motorway" || t.highway === "trunk") highwayCount++;
     }
 
+    // Scenic road count: also add 1 for every viewpoint as proxy for scenic surroundings
+    scenicRoadCount += viewpointCount;
+
     return {
-      parkCount, waterCount, waterwayCount, greenCount,
-      litCount, calmWaterCount, rapidCount,
-      launchCount, portageCount, motorBoatCount,
+      parkCount, waterfrontCount, scenicRoadCount, greenCount,
+      litCount, lowTrafficCount, constructionCount,
+      restStopCount, viewpointCount, highwayCount,
       partial: false,
     };
   } catch (err) {

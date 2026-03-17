@@ -3,42 +3,47 @@ export interface Coordinates {
   lng: number;
 }
 
+/** Raw signals collected from OSM Overpass for a driving route */
 export interface HappinessSignals {
   parkCount: number;
-  waterCount: number;
-  waterwayCount: number;
+  waterfrontCount: number;
+  scenicRoadCount: number;
   greenCount: number;
   litCount: number;
-  calmWaterCount: number;
-  rapidCount: number;
-  launchCount: number;
-  portageCount: number;
-  motorBoatCount: number;
+  lowTrafficCount: number;
+  constructionCount: number;
+  restStopCount: number;
+  viewpointCount: number;
+  highwayCount: number;
+  /** true when Overpass timed out / errored — scores are estimated */
   partial: boolean;
 }
 
+/** Per-category score contributions, each capped at their max */
 export interface ScoreBreakdown {
-  parks: number;
-  waterways: number;
-  water: number;
-  green: number;
-  lit: number;
-  calmWater: number;
-  launch: number;
-  portage: number;
-  base: number;
-  rapids: number;
-  elevation: number;
-  motorBoat: number;
+  parks: number;        // 0–30
+  scenicRoads: number;  // 0–25
+  waterfront: number;   // 0–20
+  green: number;        // 0–15
+  lit: number;          // 0–10
+  lowTraffic: number;   // 0–15
+  restStops: number;    // 0–8
+  viewpoints: number;   // 0–10
+  base: number;         // always 5
+  construction: number; // 0–15 (penalty)
+  elevation: number;    // 0–15 (penalty)
+  highway: number;      // 0–12 (penalty)
 }
 
+/** A route enriched with happiness data */
 export interface ScoredRoute {
   id: number;
+  /** [lng, lat] pairs — GeoJSON order */
   geometry: [number, number][];
-  distance: number;
-  duration: number;
+  distance: number; // metres
+  duration: number; // seconds
   signals: HappinessSignals;
-  happyScore: number;
+  happyScore: number; // 0–100
   scoreBreakdown: ScoreBreakdown;
   elevationGainM?: number;
   elevationPoints?: number[];
