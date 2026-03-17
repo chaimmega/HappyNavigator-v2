@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { GoogleMap, Polyline, Marker, InfoWindow } from "@react-google-maps/api";
 import { ScoredRoute, Coordinates, ROUTE_COLORS, ROUTE_NAMES } from "@/types/navigation";
-import { useGoogleMapsLoaded } from "./GoogleMapsProvider";
 
 const MAP_CONTAINER_STYLE = { height: "100%", width: "100%" };
 
@@ -24,11 +23,8 @@ export function MapView({
   onSelectRoute,
   onMapClick,
 }: MapViewProps) {
-  const mapsLoaded = useGoogleMapsLoaded();
   const mapRef = useRef<google.maps.Map | null>(null);
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
-
-  if (!mapsLoaded) return <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">Loading map…</div>;
 
   const handleSelect = useCallback(
     (id: number) => onSelectRoute(id),

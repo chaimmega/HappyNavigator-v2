@@ -1,16 +1,17 @@
 import { motion } from "framer-motion";
-import { ScoredRoute, Coordinates, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
+import { ScoredRoute, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
 import { HappyScore } from "./HappyScore";
 import { SuggestedStops } from "./SuggestedStops";
 import { Download, Fuel, ExternalLink } from "lucide-react";
+import type { Coordinates } from "@/types/navigation";
 
 interface RouteCardProps {
   route: ScoredRoute;
   isBest: boolean;
   isSelected: boolean;
   metric: boolean;
-  startCoords: Coordinates;
-  endCoords: Coordinates;
+  startCoords?: Coordinates;
+  endCoords?: Coordinates;
   onClick: () => void;
 }
 
@@ -28,7 +29,6 @@ function buildGoogleMapsUrl(route: ScoredRoute, startCoords: Coordinates, endCoo
   const geo = route.geometry;
   const origin = `${startCoords.lat},${startCoords.lng}`;
   const destination = `${endCoords.lat},${endCoords.lng}`;
-
   const waypointCount = Math.min(6, Math.floor(geo.length / 4));
   const waypoints = [];
   const step = (geo.length - 1) / (waypointCount + 1);
@@ -36,7 +36,6 @@ function buildGoogleMapsUrl(route: ScoredRoute, startCoords: Coordinates, endCoo
     const [lng, lat] = geo[Math.round(i * step)];
     waypoints.push(`${lat},${lng}`);
   }
-
   const params = new URLSearchParams({ api: "1", origin, destination, travelmode: "driving" });
   if (waypoints.length) params.set("waypoints", waypoints.join("|"));
   return `https://www.google.com/maps/dir/?${params.toString()}`;
@@ -66,42 +65,10 @@ export function RouteCard({ route, isBest, isSelected, metric, startCoords, endC
     (sum, s) => sum + ((route.scoreBreakdown as any)[s.key] || 0), 0
   );
 
-  // Fuel cost estimate: 30 MPG, $3.80/gallon
   const fuelGallons = route.distance / 1000 / 1.609 / 30;
   const fuelCost = (fuelGallons * 3.80).toFixed(2);
-
-  // Stress score from penalties
-  const stressScore = Math.min(
-    100,
-    Math.round(
-      ((route.scoreBreakdown.highway + route.scoreBreakdown.construction) / 27) * 100
-    )
-  );
+  const stressScore = Math.min(100, Math.round(((route.scoreBreakdown.highway + route.scoreBreakdown.construction) / 27) * 100));
   const stressLabel = stressScore <= 20 ? "Very Calm" : stressScore <= 50 ? "Moderate" : "Stressful";
-
-  function handleExportGPX() {
-    const coords = route.geometry;
-    const gpxName = `${routeName} — Happy Navigator`;
-    const trkpts = coords
-      .map(([lng, lat]) => `    <trkpt lat="${lat}" lon="${lng}"></trkpt>`)
-      .join("\n");
-    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Happy Navigator" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <name>${gpxName}</name>
-    <trkseg>
-${trkpts}
-    </trkseg>
-  </trk>
-</gpx>`;
-    const blob = new Blob([gpx], { type: "application/gpx+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `happy-route-${routeName.split(" ")[1]?.toLowerCase() ?? "a"}.gpx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <motion.div
@@ -224,13 +191,13 @@ ${trkpts}
                 })}
               </div>
 
-              {/* Fuel cost & Stress score */}
+              {/* Fuel cost & Stress */}
               <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1" title="Estimated fuel cost at 30 MPG, $3.80/gal">
                   <Fuel className="h-3 w-3 text-amber-500" />
                   ~${fuelCost} fuel est.
                 </span>
-                <span className="flex items-center gap-1" title="Drive stress based on highway and construction penalties">
+                <span className="flex items-center gap-1">
                   🧘 {stressLabel} drive
                 </span>
               </div>
@@ -240,23 +207,38 @@ ${trkpts}
 
               {/* Actions */}
               <div className="flex gap-2">
-                <a
-                  href={buildGoogleMapsUrl(route, startCoords, endCoords)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-50 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open in Maps
-                </a>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleExportGPX(); }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Export GPX
-                </button>
+                {startCoords && endCoords && (
+                  <a
+                    href={buildGoogleMapsUrl(route, startCoords, endCoords)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-50 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open in Maps
+                  </a>
+                )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const coords = route.geometry;
+                  const gpxName = `${routeName} — Happy Navigator`;
+                  const trkpts = coords.map(([lng, lat]) => `    <trkpt lat="${lat}" lon="${lng}"></trkpt>`).join("\n");
+                  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Happy Navigator" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk>\n    <name>${gpxName}</name>\n    <trkseg>\n${trkpts}\n    </trkseg>\n  </trk>\n</gpx>`;
+                  const blob = new Blob([gpx], { type: "application/gpx+xml" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `happy-route-${routeName.split(" ")[1]?.toLowerCase() ?? "a"}.gpx`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export GPX
+              </button>
               </div>
             </div>
           </motion.div>

@@ -43,6 +43,7 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
     setLoading(true);
     setStops([]);
 
+    // Sample 3 points along the route (25%, 50%, 75%)
     const geo = route.geometry;
     const sampleIndices = [
       Math.floor(geo.length * 0.25),
@@ -50,14 +51,21 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
       Math.floor(geo.length * 0.75),
     ];
 
-    const service = new google.maps.places.PlacesService(document.body as HTMLDivElement);
+    // Create a hidden map div for PlacesService
+    const mapDiv = document.createElement("div");
+    mapDiv.style.display = "none";
+    document.body.appendChild(mapDiv);
+    const dummyMap = new google.maps.Map(mapDiv);
+    const service = new google.maps.places.PlacesService(dummyMap);
 
     const allStops: Stop[] = [];
     const seenPlaceIds = new Set<string>();
     let completed = 0;
 
+    // Safety timeout — stop loading after 8s even if Places API never responds
     const timeout = setTimeout(() => {
       setLoading(false);
+      try { document.body.removeChild(mapDiv); } catch {}
     }, 8000);
 
     sampleIndices.forEach((idx) => {
@@ -71,6 +79,7 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
         (results, status) => {
           completed++;
           if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            // Filter for interesting places, skip generic ones
             const interesting = results
               .filter((p) => {
                 if (!p.place_id || seenPlaceIds.has(p.place_id)) return false;
@@ -100,12 +109,14 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
           }
 
           if (completed === sampleIndices.length) {
+            // Sort by rating, take top 4
             const sorted = allStops
               .sort((a, b) => (b.rating || 0) - (a.rating || 0))
               .slice(0, 4);
             setStops(sorted);
             clearTimeout(timeout);
             setLoading(false);
+            try { document.body.removeChild(mapDiv); } catch {};
           }
         }
       );
@@ -135,8 +146,7 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.08 * i }}
             className="flex gap-3 items-start rounded-xl bg-muted p-2 group hover:bg-accent transition-colors cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               window.open(
                 `https://www.google.com/maps/search/?api=1&query=${stop.lat},${stop.lng}&query_place_id=${stop.name}`,
                 "_blank"
