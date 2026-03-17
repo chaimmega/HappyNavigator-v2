@@ -62,6 +62,12 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
     const seenPlaceIds = new Set<string>();
     let completed = 0;
 
+    // Safety timeout — stop loading after 8s even if Places API never responds
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      try { document.body.removeChild(mapDiv); } catch {}
+    }, 8000);
+
     sampleIndices.forEach((idx) => {
       const [lng, lat] = geo[idx];
       service.nearbySearch(
@@ -78,8 +84,8 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
               .filter((p) => {
                 if (!p.place_id || seenPlaceIds.has(p.place_id)) return false;
                 if (!p.name || !p.vicinity) return false;
-                // Prefer places with photos and good ratings
-                const hasGoodType = p.types?.some((t) => PLACE_TYPES.includes(t));
+                if (p.types?.some((t) => EXCLUDE_TYPES.includes(t))) return false;
+                const hasGoodType = p.types?.some((t) => GOOD_TYPES.includes(t));
                 return hasGoodType || (p.rating && p.rating >= 4.0);
               })
               .slice(0, 2);
@@ -108,9 +114,9 @@ export function SuggestedStops({ route }: SuggestedStopsProps) {
               .sort((a, b) => (b.rating || 0) - (a.rating || 0))
               .slice(0, 4);
             setStops(sorted);
+            clearTimeout(timeout);
             setLoading(false);
-            // Clean up
-            document.body.removeChild(mapDiv);
+            try { document.body.removeChild(mapDiv); } catch {};
           }
         }
       );
