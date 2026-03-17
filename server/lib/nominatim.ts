@@ -1,6 +1,8 @@
 import { createLRUCache } from "./lruCache.js";
 
-const API_KEY = process.env.GOOGLE_MAPS_SERVER_KEY ?? process.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+function getApiKey() {
+  return process.env.GOOGLE_MAPS_SERVER_KEY ?? process.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+}
 const GEOCODE_BASE = "https://maps.googleapis.com/maps/api/geocode/json";
 
 export interface GeocodedLocation {
@@ -29,7 +31,7 @@ async function forwardGeocode(address: string): Promise<GeocodedLocation | null>
   const cached = cache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const url = `${GEOCODE_BASE}?address=${encodeURIComponent(address)}&key=${API_KEY}`;
+  const url = `${GEOCODE_BASE}?address=${encodeURIComponent(address)}&key=${getApiKey()}`;
 
   try {
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -63,7 +65,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<GeocodedLocatio
   const cached = cache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const url = `${GEOCODE_BASE}?latlng=${lat},${lng}&key=${API_KEY}`;
+  const url = `${GEOCODE_BASE}?latlng=${lat},${lng}&key=${getApiKey()}`;
 
   try {
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });

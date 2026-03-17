@@ -1,7 +1,9 @@
 import type { Coordinates } from "./types.js";
 import { createLRUCache } from "./lruCache.js";
 
-const API_KEY = process.env.GOOGLE_MAPS_SERVER_KEY ?? process.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+function getApiKey() {
+  return process.env.GOOGLE_MAPS_SERVER_KEY ?? process.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+}
 const DIRECTIONS_BASE = "https://maps.googleapis.com/maps/api/directions/json";
 
 const routeCache = createLRUCache<OSRMRoute[]>(200, 2 * 60 * 60 * 1000);
@@ -69,7 +71,7 @@ export async function getDrivingRoutes(
     destination: `${end.lat},${end.lng}`,
     mode: "driving",
     alternatives: "true",
-    key: API_KEY,
+    key: getApiKey(),
   });
 
   if (via) {
