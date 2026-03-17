@@ -147,6 +147,15 @@ export default function Index() {
       }
 
       const nav = json as NavigateResponse;
+
+      // Normalize route IDs to 0, 1, 2 so display order is always A, B, C
+      const idMap = new Map(nav.routes.map((r, i) => [r.id, i]));
+      nav.routes = nav.routes.map((r, i) => ({ ...r, id: i }));
+      nav.bestRouteId = idMap.get(nav.bestRouteId) ?? 0;
+      if (nav.explanation) {
+        nav.explanation.bestRouteId = nav.bestRouteId;
+      }
+
       setResult(nav);
       setSelectedRouteId(nav.bestRouteId);
 

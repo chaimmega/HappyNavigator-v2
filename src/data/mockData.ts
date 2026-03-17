@@ -1,6 +1,4 @@
 import { NavigateResponse } from "@/types/navigation";
-import stopOverlook from "@/assets/stop-riverside-overlook.jpg";
-import stopCafe from "@/assets/stop-greenway-cafe.jpg";
 
 export const mockResponse: NavigateResponse = {
   routes: [
@@ -22,16 +20,16 @@ export const mockResponse: NavigateResponse = {
       distance: 10142,
       duration: 1920,
       signals: {
-        parkCount: 12, waterfrontCount: 8, scenicRoadCount: 5,
-        greenCount: 34, litCount: 48, lowTrafficCount: 18,
-        constructionCount: 0, restStopCount: 4, viewpointCount: 3,
-        highwayCount: 0, partial: false,
+        parkCount: 12, waterCount: 8, waterwayCount: 5,
+        greenCount: 34, litCount: 48, calmWaterCount: 6,
+        rapidCount: 0, launchCount: 4, portageCount: 3,
+        motorBoatCount: 0, partial: false,
       },
       happyScore: 82,
       scoreBreakdown: {
-        parks: 22, scenicRoads: 15, waterfront: 12, green: 10,
-        lit: 5, lowTraffic: 12, restStops: 3, viewpoints: 5,
-        base: 5, construction: 0, elevation: -2, highway: 0,
+        parks: 22, waterways: 15, water: 12, green: 10,
+        lit: 5, calmWater: 8, launch: 3, portage: 2,
+        base: 5, rapids: 0, elevation: 2, motorBoat: 0,
       },
       elevationGainM: 85,
       elevationPoints: [
@@ -56,16 +54,16 @@ export const mockResponse: NavigateResponse = {
       distance: 9200,
       duration: 1380,
       signals: {
-        parkCount: 5, waterfrontCount: 2, scenicRoadCount: 1,
-        greenCount: 15, litCount: 52, lowTrafficCount: 6,
-        constructionCount: 2, restStopCount: 1, viewpointCount: 0,
-        highwayCount: 5, partial: false,
+        parkCount: 5, waterCount: 2, waterwayCount: 1,
+        greenCount: 15, litCount: 52, calmWaterCount: 1,
+        rapidCount: 2, launchCount: 1, portageCount: 0,
+        motorBoatCount: 5, partial: false,
       },
       happyScore: 41,
       scoreBreakdown: {
-        parks: 10, scenicRoads: 4, waterfront: 3, green: 6,
-        lit: 5, lowTraffic: 5, restStops: 1, viewpoints: 0,
-        base: 5, construction: -5, elevation: -4, highway: -8,
+        parks: 10, waterways: 4, water: 3, green: 6,
+        lit: 5, calmWater: 2, launch: 1, portage: 0,
+        base: 5, rapids: 5, elevation: 4, motorBoat: 8,
       },
       elevationGainM: 195,
       elevationPoints: [
@@ -92,16 +90,16 @@ export const mockResponse: NavigateResponse = {
       distance: 12450,
       duration: 2280,
       signals: {
-        parkCount: 18, waterfrontCount: 14, scenicRoadCount: 9,
-        greenCount: 45, litCount: 35, lowTrafficCount: 22,
-        constructionCount: 0, restStopCount: 6, viewpointCount: 5,
-        highwayCount: 0, partial: false,
+        parkCount: 18, waterCount: 14, waterwayCount: 9,
+        greenCount: 45, litCount: 35, calmWaterCount: 10,
+        rapidCount: 0, launchCount: 6, portageCount: 5,
+        motorBoatCount: 0, partial: false,
       },
       happyScore: 91,
       scoreBreakdown: {
-        parks: 28, scenicRoads: 18, waterfront: 15, green: 12,
-        lit: 4, lowTraffic: 14, restStops: 4, viewpoints: 6,
-        base: 5, construction: 0, elevation: -8, highway: 0,
+        parks: 28, waterways: 18, water: 15, green: 12,
+        lit: 4, calmWater: 10, launch: 4, portage: 3,
+        base: 5, rapids: 0, elevation: 8, motorBoat: 0,
       },
       elevationGainM: 145,
       elevationPoints: [
@@ -115,14 +113,13 @@ export const mockResponse: NavigateResponse = {
   explanation: {
     bestRouteId: 2,
     bullets: [
-      "Route C takes the scenic West Side Highway with uninterrupted Hudson River views and 14 waterfront segments — the most of any option",
-      "18 parks and 45 green spaces keep the drive shaded and pleasant, with 6 excellent rest stops along the way",
-      "22 low-traffic segments and zero highway stretches make this the most relaxed, stress-free driving experience",
-      "5 designated viewpoints including the Intrepid Museum overlook and Battery Park sunset vista",
+      "Route C follows the scenic waterway with 14 water features and 9 waterway sections — the most of any option",
+      "18 parks and 45 green spaces along the route, with 6 boat launches and 5 portage access points",
+      "10 calm water sections and zero rapids make this the safest, most pleasant paddling experience",
     ],
     suggestedStops: [
-      { name: "Riverside Park Overlook — scenic pullover with panoramic Hudson River views and benches", image: stopOverlook },
-      { name: "Hudson River Greenway Café — cozy waterfront rest stop with artisan coffee and river terrace", image: stopCafe },
+      "Riverside Park — scenic rest stop with panoramic river views",
+      "Hudson River Greenway — calm water access point with easy put-in",
     ],
   },
   startCoords: { lat: 40.7829, lng: -73.9654 },

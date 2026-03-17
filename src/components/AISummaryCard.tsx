@@ -1,13 +1,8 @@
 import { motion } from "framer-motion";
 
-interface SuggestedStop {
-  name: string;
-  image: string;
-}
-
 interface AISummaryCardProps {
   bullets: string[];
-  suggestedStops?: SuggestedStop[];
+  suggestedStops?: string[];
   startName: string;
   endName: string;
 }
@@ -42,32 +37,17 @@ export function AISummaryCard({ bullets, suggestedStops, startName, endName }: A
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
               Suggested Stops
             </p>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {suggestedStops.map((stop, i) => (
                 <motion.div
                   key={i}
                   initial={{ y: 8, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.3, delay: 0.1 * i }}
-                  className="flex gap-3 items-start rounded-xl bg-muted p-2 group hover:bg-accent transition-colors"
+                  className="flex gap-2 items-center rounded-xl bg-muted px-3 py-2 group hover:bg-accent transition-colors"
                 >
-                  <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg">
-                    <img
-                      src={stop.image}
-                      alt={stop.name}
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1 py-0.5">
-                    <p className="text-xs font-medium text-foreground leading-snug">{stop.name.split("—")[0].trim()}</p>
-                    {stop.name.includes("—") && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                        {stop.name.split("—").slice(1).join("—").trim()}
-                      </p>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-sm mt-0.5">📍</span>
+                  <span className="shrink-0 text-sm">📍</span>
+                  <p className="text-xs font-medium text-foreground leading-snug">{stop}</p>
                 </motion.div>
               ))}
             </div>
