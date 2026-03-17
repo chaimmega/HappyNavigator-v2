@@ -343,6 +343,8 @@ export default function Index() {
                 isBest={route.id === result.bestRouteId}
                 isSelected={route.id === selectedRouteId}
                 metric={metric}
+                startCoords={result.startCoords}
+                endCoords={result.endCoords}
                 onClick={() => setSelectedRouteId(route.id)}
               />
             ))}

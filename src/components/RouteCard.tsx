@@ -1,14 +1,16 @@
 import { motion } from "framer-motion";
-import { ScoredRoute, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
+import { ScoredRoute, Coordinates, formatDistance, formatDuration, formatElevation, ROUTE_NAMES, ROUTE_COLORS } from "@/types/navigation";
 import { HappyScore } from "./HappyScore";
 import { SuggestedStops } from "./SuggestedStops";
-import { Download, Fuel } from "lucide-react";
+import { Download, Fuel, ExternalLink } from "lucide-react";
 
 interface RouteCardProps {
   route: ScoredRoute;
   isBest: boolean;
   isSelected: boolean;
   metric: boolean;
+  startCoords: Coordinates;
+  endCoords: Coordinates;
   onClick: () => void;
 }
 
@@ -22,7 +24,25 @@ const signalChips = [
   { key: "viewpointCount", emoji: "🏔️", label: "viewpoints" },
 ] as const;
 
-export function RouteCard({ route, isBest, isSelected, metric, onClick }: RouteCardProps) {
+function buildGoogleMapsUrl(route: ScoredRoute, startCoords: Coordinates, endCoords: Coordinates): string {
+  const geo = route.geometry;
+  const origin = `${startCoords.lat},${startCoords.lng}`;
+  const destination = `${endCoords.lat},${endCoords.lng}`;
+
+  const waypointCount = Math.min(6, Math.floor(geo.length / 4));
+  const waypoints = [];
+  const step = (geo.length - 1) / (waypointCount + 1);
+  for (let i = 1; i <= waypointCount; i++) {
+    const [lng, lat] = geo[Math.round(i * step)];
+    waypoints.push(`${lat},${lng}`);
+  }
+
+  const params = new URLSearchParams({ api: "1", origin, destination, travelmode: "driving" });
+  if (waypoints.length) params.set("waypoints", waypoints.join("|"));
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+export function RouteCard({ route, isBest, isSelected, metric, startCoords, endCoords, onClick }: RouteCardProps) {
   const routeColor = ROUTE_COLORS[route.id] || ROUTE_COLORS[0];
   const routeName = ROUTE_NAMES[route.id] || `Route ${route.id + 1}`;
 
@@ -218,14 +238,26 @@ ${trkpts}
               {/* Suggested stops from Google Places */}
               <SuggestedStops route={route} />
 
-              {/* Export GPX */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExportGPX(); }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export GPX
-              </button>
+              {/* Actions */}
+              <div className="flex gap-2">
+                <a
+                  href={buildGoogleMapsUrl(route, startCoords, endCoords)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-50 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open in Maps
+                </a>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExportGPX(); }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-accent py-2 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export GPX
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
